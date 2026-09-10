@@ -1,0 +1,14 @@
+# build output
+gameengine
+src/Main
+*.o
+*.obj
+
+# build folders
+build/
+out/
+
+# editor / clangd cache
+.cache/
+*.swp
+*.swo
