@@ -20,6 +20,8 @@
 #include "../Systems/RenderColliderSystem.h"
 #include "../Components/KeyBoardControlComponent.h"
 #include "../Systems/KeyboardControlSystem.h"
+#include "../Components/CameraComponent.h"
+#include "../Systems/CameraSystem.h"
 
 // #include <iostream>
 
@@ -40,8 +42,8 @@ void Game::Init() {
     }
     SDL_DisplayMode displayMode;
     SDL_GetCurrentDisplayMode(0, &displayMode);
-    windowWidth = 800;
-    windowHight = 600;
+    windowWidth = 1280;
+    windowHight = 720;
     window =
         SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                          windowWidth, windowHight, SDL_WINDOW_BORDERLESS);
@@ -54,7 +56,7 @@ void Game::Init() {
         Logger::Err("Error creating SDL renderer.");
         return;
     }
-    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+    //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
 
     isRunning = true;
 }
@@ -83,18 +85,20 @@ void Game::LoadLevel(int level){
     registy->AddSystem<CollisionSystem>();
     registy->AddSystem<RenderColliderSystem>();
     registy->AddSystem<KeyboardControlSystem>();
+    registy->AddSystem<CameraSystem>();
     // init game object
-
     assetStore->AddTexture(renderer,"tank-image","./assets/images/tank-panther-right.png");
     assetStore->AddTexture(renderer,"truck-image","./assets/images/truck-ford-right.png");
     assetStore->AddTexture(renderer,"chopper-image","./assets/images/chopper.png");
     assetStore->AddTexture(renderer,"radar-image","./assets/images/radar.png");
     assetStore->AddTexture(renderer,"tilemap-image","./assets/tilemaps/jungle.png");
     int tileSize = 32;
-    double tileScale = 1.0;
+    double tileScale = 2.0;
     int mapNumCols = 25;
     int mapNumRows = 20;
     std::fstream mapFile;
+    levelWidth = mapNumCols * tileSize * tileScale;
+    levelHeight = mapNumRows * tileSize * tileScale;
     mapFile.open("./assets/tilemaps/jungle.map");
     for (int y = 0; y < mapNumRows; y++){
         for(int x = 0; x < mapNumCols; x++){
@@ -118,6 +122,7 @@ void Game::LoadLevel(int level){
     chopper.AddComponent<SpriteComponent>("chopper-image", 32,32,1);
     chopper.AddComponent<AnimationComponent>(2,15,true);
     chopper.AddComponent<KeyBoardControlComponet>();
+    chopper.AddComponent<CameraComponent>();
 
     Entity radar = registy->CreateEntity();
     radar.AddComponent<TransformComponent>(glm::vec2(windowWidth - 74,10.0), glm::vec2(1.0,1.0),0.0);
@@ -154,6 +159,7 @@ void Game::Update() {
     registy->Update();
     registy->GetSystem<KeyboardControlSystem>().Update();
     registy->GetSystem<MovementSystem>().Update(deltatime);
+    registy->GetSystem<CameraSystem>().Update(windowWidth, windowHight, levelWidth, levelHeight);
     registy->GetSystem<AnimationSystem>().Update();
     registy->GetSystem<CollisionSystem>().Update();
 }
@@ -171,9 +177,10 @@ void Game::Render() {
     // SDL_RenderCopy(renderer, texture, NULL, &destRect);
     // SDL_DestroyTexture(texture);
     //
-    registy->GetSystem<RenderSystem>().Update(renderer,assetStore);
+    glm::vec2 camera = registy->GetSystem<CameraSystem>().cameraPosition;
+    registy->GetSystem<RenderSystem>().Update(renderer,assetStore,camera);
     if (isDebug){
-        registy->GetSystem<RenderColliderSystem>().Update(renderer);
+        registy->GetSystem<RenderColliderSystem>().Update(renderer,camera);
     }
     SDL_RenderPresent(renderer);
 }

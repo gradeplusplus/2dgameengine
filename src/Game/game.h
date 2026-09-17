@@ -31,6 +31,8 @@ public: // public api
     void LoadLevel(int level);
     int windowWidth;
     int windowHight;
+    int levelWidth;
+    int levelHeight;
 };
 
 #endif

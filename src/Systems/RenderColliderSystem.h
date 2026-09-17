@@ -13,14 +13,14 @@ public:
         RequireComponent<TransformComponent>();
         RequireComponent<BoxColliderComponent>();
     }
-    void Update(SDL_Renderer* renderer){
+    void Update(SDL_Renderer* renderer, glm::vec2 camera){
         for(auto entity: GetSystemEntities()){
             const auto tran = entity.GetComponent<TransformComponent>();
             const auto collider = entity.GetComponent<BoxColliderComponent>();
 
             SDL_Rect colliderRect = {
-                static_cast<int>(tran.position.x + collider.offest.x),
-                static_cast<int>(tran.position.y + collider.offest.y),
+                static_cast<int>(tran.position.x + collider.offest.x - camera.x),
+                static_cast<int>(tran.position.y + collider.offest.y - camera.y),
                 static_cast<int>(collider.width),
                 static_cast<int>(collider.height)
             };

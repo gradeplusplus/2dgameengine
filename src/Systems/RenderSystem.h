@@ -18,7 +18,7 @@ public:
         RequireComponent<SpriteComponent>();
     }
 
-    void Update(SDL_Renderer* renderer,std::unique_ptr<AssetStore>& AssetStore){
+    void Update(SDL_Renderer* renderer,std::unique_ptr<AssetStore>& AssetStore, glm::vec2 camera){
         struct RenderableEntity{
             TransformComponent transformComponent;
             SpriteComponent spriteComponent;
@@ -42,8 +42,8 @@ public:
             SDL_Rect srcRect = sprite.srcRect;
 
             SDL_Rect desRect = {
-                static_cast<int>(transform.position.x),
-                static_cast<int>(transform.position.y),
+                static_cast<int>(transform.position.x - camera.x),
+                static_cast<int>(transform.position.y - camera.y),
                 static_cast<int>(sprite.width * transform.scale.x),
                 static_cast<int>(sprite.height * transform.scale.y)
             };
