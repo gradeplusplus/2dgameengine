@@ -18,6 +18,8 @@
 #include "glm/ext/vector_float2.hpp"
 #include "../Systems/CollisionSystem.h"
 #include "../Systems/RenderColliderSystem.h"
+#include "../Components/KeyBoardControlComponent.h"
+#include "../Systems/KeyboardControlSystem.h"
 
 // #include <iostream>
 
@@ -80,6 +82,7 @@ void Game::LoadLevel(int level){
     registy->AddSystem<AnimationSystem>();
     registy->AddSystem<CollisionSystem>();
     registy->AddSystem<RenderColliderSystem>();
+    registy->AddSystem<KeyboardControlSystem>();
     // init game object
 
     assetStore->AddTexture(renderer,"tank-image","./assets/images/tank-panther-right.png");
@@ -114,6 +117,7 @@ void Game::LoadLevel(int level){
     chopper.AddComponent<RigidBodyCompoent>(glm::vec2(0.0,0.0));
     chopper.AddComponent<SpriteComponent>("chopper-image", 32,32,1);
     chopper.AddComponent<AnimationComponent>(2,15,true);
+    chopper.AddComponent<KeyBoardControlComponet>();
 
     Entity radar = registy->CreateEntity();
     radar.AddComponent<TransformComponent>(glm::vec2(windowWidth - 74,10.0), glm::vec2(1.0,1.0),0.0);
@@ -148,7 +152,7 @@ void Game::Update() {
     millisecsPreviousFrame = SDL_GetTicks();
     
     registy->Update();
-    
+    registy->GetSystem<KeyboardControlSystem>().Update();
     registy->GetSystem<MovementSystem>().Update(deltatime);
     registy->GetSystem<AnimationSystem>().Update();
     registy->GetSystem<CollisionSystem>().Update();
