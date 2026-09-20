@@ -14,6 +14,7 @@ private:
     bool isRunning;
     SDL_Window *window;
     bool isDebug;
+    bool showImGui = false;
     SDL_Renderer *renderer;
     int millisecsPreviousFrame = 0;
     std::unique_ptr<Registy> registy;

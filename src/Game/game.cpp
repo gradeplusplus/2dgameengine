@@ -33,6 +33,8 @@
 #include "../Events/CollisionEvent.h"
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_mixer.h>
+#include "imgui.h"
+#include "imgui_sdl.h"
 
 // #include <iostream>
 
@@ -84,14 +86,31 @@ void Game::Init() {
     TTF_Init();
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 
+    ImGui::CreateContext();
+    ImGuiSDL::Initialize(renderer, windowWidth, windowHight);
+
     isRunning = true;
 }
 void Game::ProcessInput() {
+    ImGuiIO& io = ImGui::GetIO();
     SDL_Event sdlEvent;
     while (SDL_PollEvent(&sdlEvent)) {
         switch (sdlEvent.type) {
             case SDL_QUIT:
                 isRunning = false;
+                break;
+            case SDL_MOUSEMOTION:
+                io.MousePos = ImVec2(static_cast<float>(sdlEvent.motion.x),
+                                     static_cast<float>(sdlEvent.motion.y));
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                io.MouseDown[sdlEvent.button.button - 1] = true;
+                break;
+            case SDL_MOUSEBUTTONUP:
+                io.MouseDown[sdlEvent.button.button - 1] = false;
+                break;
+            case SDL_MOUSEWHEEL:
+                io.MouseWheel = static_cast<float>(sdlEvent.wheel.y);
                 break;
             case SDL_KEYDOWN:
                 if (sdlEvent.key.keysym.sym == SDLK_ESCAPE) {
@@ -99,6 +118,9 @@ void Game::ProcessInput() {
                 }
                 if (sdlEvent.key.keysym.sym == SDLK_d){
                     isDebug = !isDebug;
+                }
+                if (sdlEvent.key.keysym.sym == SDLK_F1){
+                    showImGui = !showImGui;
                 }
                 if (sdlEvent.key.keysym.sym == SDLK_SPACE){
                     Mix_PlayChannel(-1, assetStore->GetSound("shoot"), 0);
@@ -289,6 +311,25 @@ void Game::Render() {
     RenderText(renderer, font, "Health: " + std::to_string(health), 10, 10, white);
     RenderText(renderer, font, "Score: " + std::to_string(score), 10, 32, white);
 
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(static_cast<float>(windowWidth), static_cast<float>(windowHight));
+    io.DeltaTime = MILLISECS_PER_FRAME / 1000.0f;
+    ImGui::NewFrame();
+
+    if (showImGui) {
+        ImGui::Begin("Debug");
+        ImGui::Text("FPS: %.1f", io.Framerate);
+        ImGui::Text("Score: %d", score);
+        ImGui::Text("Player health: %d", health);
+        ImGui::Text("Camera: %.0f, %.0f", camera.x, camera.y);
+        ImGui::Text("Level: %d x %d", levelWidth, levelHeight);
+        ImGui::Checkbox("Show colliders", &isDebug);
+        ImGui::End();
+    }
+
+    ImGui::Render();
+    ImGuiSDL::Render(ImGui::GetDrawData());
+
     SDL_RenderPresent(renderer);
 }
 
@@ -302,6 +343,8 @@ void Game::Run() {
 }
 
 void Game::Destory() {
+    ImGuiSDL::Deinitialize();
+    ImGui::DestroyContext();
     Mix_CloseAudio();
     Mix_Quit();
     TTF_Quit();
