@@ -33,6 +33,7 @@ public: // public api
     int windowHight;
     int levelWidth;
     int levelHeight;
+    int score = 0;
 };
 
 #endif

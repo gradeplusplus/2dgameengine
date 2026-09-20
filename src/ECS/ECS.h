@@ -28,6 +28,7 @@ private:
     int id;
 
 public:
+    Entity() : id(-1) {};
     Entity(int id) : id(id) {};
     Entity(const Entity &entity) = default;
     int GetId() const;
@@ -43,7 +44,7 @@ public:
     template<typename TComponent> TComponent& GetComponent() const;
    
     //why use this?
-    class Registy* registry;
+    class Registy* registry = nullptr;
 };
 class System {
 private:
@@ -53,6 +54,8 @@ private:
 public:
     System() = default;
     virtual ~System() = default;
+
+    class Registy* registry = nullptr;
 
     void AddEntityToSystem(Entity entity);
     void RemoveEntityFromSystem(Entity entity);
@@ -159,6 +162,7 @@ template<typename TSystem, typename ...TArgs>
 void Registy::AddSystem(TArgs&& ...args){
     //dont get new inside the ()? and why here type_index need typeid()?
     std::shared_ptr<TSystem> newSystem = std::make_shared<TSystem>(std::forward<TArgs>(args)...);
+    newSystem->registry = this;
     systems.insert(std::make_pair(std::type_index(typeid(TSystem)), newSystem));
 }
 

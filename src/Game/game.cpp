@@ -22,6 +22,13 @@
 #include "../Systems/KeyboardControlSystem.h"
 #include "../Components/CameraComponent.h"
 #include "../Systems/CameraSystem.h"
+#include "../Components/HealthComponent.h"
+#include "../Components/ProjectileComponent.h"
+#include "../Components/ProjectileEmitterComponent.h"
+#include "../Components/AIComponent.h"
+#include "../Systems/ProjectileEmitSystem.h"
+#include "../Systems/ProjectileLifecycleSystem.h"
+#include "../Systems/EnemyAISystem.h"
 #include "../Events/EventBus.h"
 #include "../Events/CollisionEvent.h"
 
@@ -88,12 +95,16 @@ void Game::LoadLevel(int level){
     registy->AddSystem<RenderColliderSystem>();
     registy->AddSystem<KeyboardControlSystem>();
     registy->AddSystem<CameraSystem>();
+    registy->AddSystem<ProjectileEmitSystem>();
+    registy->AddSystem<ProjectileLifecycleSystem>();
+    registy->AddSystem<EnemyAISystem>();
     // init game object
     assetStore->AddTexture(renderer,"tank-image","./assets/images/tank-panther-right.png");
     assetStore->AddTexture(renderer,"truck-image","./assets/images/truck-ford-right.png");
     assetStore->AddTexture(renderer,"chopper-image","./assets/images/chopper.png");
     assetStore->AddTexture(renderer,"radar-image","./assets/images/radar.png");
     assetStore->AddTexture(renderer,"tilemap-image","./assets/tilemaps/jungle.png");
+    assetStore->AddTexture(renderer,"bullet-image","./assets/images/bullet.png");
     int tileSize = 32;
     double tileScale = 2.0;
     int mapNumCols = 25;
@@ -126,6 +137,8 @@ void Game::LoadLevel(int level){
     chopper.AddComponent<KeyBoardControlComponet>();
     chopper.AddComponent<CameraComponent>();
     chopper.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "player", false);
+    chopper.AddComponent<HealthComponent>(100);
+    chopper.AddComponent<ProjectileEmitterComponent>(glm::vec2(150.0, 0.0), 10, true, 200);
 
     Entity radar = registy->CreateEntity();
     radar.AddComponent<TransformComponent>(glm::vec2(windowWidth - 74,10.0), glm::vec2(1.0,1.0),0.0);
@@ -134,35 +147,76 @@ void Game::LoadLevel(int level){
     radar.AddComponent<AnimationComponent>(8,5,true);
 
     Entity tank = registy->CreateEntity();
-    tank.AddComponent<TransformComponent>(glm::vec2(100.0,10.0), glm::vec2(1.0,1.0),0.0);
-    tank.AddComponent<RigidBodyCompoent>(glm::vec2(-30.0,0.0));
+    tank.AddComponent<TransformComponent>(glm::vec2(400.0,300.0), glm::vec2(1.0,1.0),0.0);
+    tank.AddComponent<RigidBodyCompoent>(glm::vec2(0.0,0.0));
     tank.AddComponent<SpriteComponent>("tank-image", 32,32,2);
-    tank.AddComponent<BoxColliderComponent>(32,32);
     tank.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "enemy", false);
+    tank.AddComponent<HealthComponent>(30);
+    tank.AddComponent<AIComponent>(chopper, 40.0);
 
     Entity track = registy->CreateEntity();
-    track.AddComponent<TransformComponent>(glm::vec2(10.0,10.0), glm::vec2(1.0,1.0),0.0);
-    track.AddComponent<RigidBodyCompoent>(glm::vec2(20.0,0.0));
+    track.AddComponent<TransformComponent>(glm::vec2(700.0,500.0), glm::vec2(1.0,1.0),0.0);
+    track.AddComponent<RigidBodyCompoent>(glm::vec2(0.0,0.0));
     track.AddComponent<SpriteComponent>("truck-image", 32,32,1);
-    track.AddComponent<BoxColliderComponent>(32,32);
     track.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "enemy", false);
+    track.AddComponent<HealthComponent>(30);
+    track.AddComponent<AIComponent>(chopper, 40.0);
 
 }
 void Game::Setup() {
-    EventBus::Subscribe<CollisionEvent>([](CollisionEvent& e){
-    Logger::Log("Collision: " + e.aTag + " <-> " + e.bTag);
+    EventBus::Subscribe<CollisionEvent>([this](CollisionEvent& e){
+        // player vs enemy contact: player takes damage, enemy dies
+        if ((e.aTag == "player" && e.bTag == "enemy") ||
+            (e.bTag == "player" && e.aTag == "enemy")) {
+            Entity player = (e.aTag == "player") ? e.a : e.b;
+            Entity enemy  = (e.aTag == "player") ? e.b : e.a;
 
-    if (e.aTag == "player" || e.bTag == "player") {
-        // player involved: survive for now, damage comes in Phase 5
-        return;
-    }
-    if (e.isTrigger) {
-        Logger::Log("Trigger entered");
-        return;
-    }
-    e.a.Kill();
-    e.b.Kill();
-});
+            if (player.HasComponent<HealthComponent>()) {
+                player.GetComponent<HealthComponent>().healthPercentage -= 25;
+                Logger::Log("Player health: " + std::to_string(
+                    player.GetComponent<HealthComponent>().healthPercentage));
+            }
+            enemy.Kill();
+
+            if (player.HasComponent<HealthComponent>() &&
+                player.GetComponent<HealthComponent>().healthPercentage <= 0) {
+                Logger::Log("Player died");
+                player.Kill();
+            }
+            return;
+        }
+
+        // projectile hits
+        if (e.aTag == "projectile" || e.bTag == "projectile") {
+            Entity projectile = (e.aTag == "projectile") ? e.a : e.b;
+            Entity other      = (e.aTag == "projectile") ? e.b : e.a;
+            const auto proj = projectile.GetComponent<ProjectileComponent>();
+
+            if (proj.isFriendly && other.HasComponent<BoxColliderComponent>() &&
+                other.GetComponent<BoxColliderComponent>().tag == "enemy") {
+                if (other.HasComponent<HealthComponent>()) {
+                    other.GetComponent<HealthComponent>().healthPercentage -= proj.damage;
+                    if (other.GetComponent<HealthComponent>().healthPercentage <= 0) {
+                        other.Kill();
+                        score += 10;
+                        Logger::Log("Score: " + std::to_string(score));
+                    }
+                }
+                projectile.Kill();
+            } else if (!proj.isFriendly && other.HasComponent<BoxColliderComponent>() &&
+                       other.GetComponent<BoxColliderComponent>().tag == "player") {
+                if (other.HasComponent<HealthComponent>()) {
+                    other.GetComponent<HealthComponent>().healthPercentage -= proj.damage;
+                    if (other.GetComponent<HealthComponent>().healthPercentage <= 0) {
+                        Logger::Log("Player died");
+                        other.Kill();
+                    }
+                }
+                projectile.Kill();
+            }
+            return;
+        }
+    });
     LoadLevel(1);
 }
 void Game::Update() {
@@ -177,10 +231,13 @@ void Game::Update() {
     
     registy->Update();
     registy->GetSystem<KeyboardControlSystem>().Update();
+    registy->GetSystem<EnemyAISystem>().Update();
+    registy->GetSystem<ProjectileEmitSystem>().Update();
     registy->GetSystem<MovementSystem>().Update(deltatime);
-    registy->GetSystem<CameraSystem>().Update(windowWidth, windowHight, levelWidth, levelHeight);
+    registy->GetSystem<ProjectileLifecycleSystem>().Update();
     registy->GetSystem<AnimationSystem>().Update();
     registy->GetSystem<CollisionSystem>().Update();
+    registy->GetSystem<CameraSystem>().Update(windowWidth, windowHight, levelWidth, levelHeight);
 }
 void Game::Render() {
     SDL_SetRenderDrawColor(renderer, 21, 21, 21, 255);
