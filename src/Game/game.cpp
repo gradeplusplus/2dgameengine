@@ -151,7 +151,7 @@ void Game::LoadLevel(int level){
     assetStore->AddTexture(renderer,"tilemap-image","./assets/tilemaps/jungle.png");
     assetStore->AddTexture(renderer,"bullet-image","./assets/images/bullet.png");
     assetStore->AddTexture(renderer,"patrol-image","./assets/images/tank-tiger-right.png");
-    assetStore->AddFont("arial", "./assets/fonts/arial.ttf", 16);
+    assetStore->AddFont("hud", "./assets/fonts/Lato-Regular.ttf", 16);
     assetStore->AddSound("shoot", "./assets/sounds/helicopter.wav");
     int tileSize = 32;
     double tileScale = 2.0;
@@ -315,7 +315,7 @@ void Game::Render() {
         registy->GetSystem<RenderColliderSystem>().Update(renderer,camera);
     }
 
-    TTF_Font* font = assetStore->GetFont("arial");
+    TTF_Font* font = assetStore->GetFont("hud");
     SDL_Color white = {255, 255, 255, 255};
     int health = player.HasComponent<HealthComponent>()
         ? player.GetComponent<HealthComponent>().healthPercentage : 0;
