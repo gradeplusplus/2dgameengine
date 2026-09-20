@@ -41,9 +41,12 @@ public:
            
             SDL_Rect srcRect = sprite.srcRect;
 
+            const float camX = sprite.isFixed ? 0.0f : camera.x;
+            const float camY = sprite.isFixed ? 0.0f : camera.y;
+
             SDL_Rect desRect = {
-                static_cast<int>(transform.position.x - camera.x),
-                static_cast<int>(transform.position.y - camera.y),
+                static_cast<int>(transform.position.x - camX),
+                static_cast<int>(transform.position.y - camY),
                 static_cast<int>(sprite.width * transform.scale.x),
                 static_cast<int>(sprite.height * transform.scale.y)
             };

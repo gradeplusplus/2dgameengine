@@ -31,8 +31,22 @@
 #include "../Systems/EnemyAISystem.h"
 #include "../Events/EventBus.h"
 #include "../Events/CollisionEvent.h"
+#include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_mixer.h>
 
 // #include <iostream>
+
+static void RenderText(SDL_Renderer* renderer, TTF_Font* font,
+                       const std::string& text, int x, int y, SDL_Color color) {
+    if (!font) return;
+    SDL_Surface* surface = TTF_RenderText_Blended(font, text.c_str(), color);
+    if (!surface) return;
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect dest = { x, y, surface->w, surface->h };
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
+}
 
 Game::Game() {
     isRunning = false;
@@ -67,6 +81,9 @@ void Game::Init() {
     }
     //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
 
+    TTF_Init();
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+
     isRunning = true;
 }
 void Game::ProcessInput() {
@@ -82,6 +99,9 @@ void Game::ProcessInput() {
                 }
                 if (sdlEvent.key.keysym.sym == SDLK_d){
                     isDebug = !isDebug;
+                }
+                if (sdlEvent.key.keysym.sym == SDLK_SPACE){
+                    Mix_PlayChannel(-1, assetStore->GetSound("shoot"), 0);
                 }
                 break;
         }
@@ -105,6 +125,8 @@ void Game::LoadLevel(int level){
     assetStore->AddTexture(renderer,"radar-image","./assets/images/radar.png");
     assetStore->AddTexture(renderer,"tilemap-image","./assets/tilemaps/jungle.png");
     assetStore->AddTexture(renderer,"bullet-image","./assets/images/bullet.png");
+    assetStore->AddFont("arial", "./assets/fonts/arial.ttf", 16);
+    assetStore->AddSound("shoot", "./assets/sounds/helicopter.wav");
     int tileSize = 32;
     double tileScale = 2.0;
     int mapNumCols = 25;
@@ -139,11 +161,12 @@ void Game::LoadLevel(int level){
     chopper.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "player", false);
     chopper.AddComponent<HealthComponent>(100);
     chopper.AddComponent<ProjectileEmitterComponent>(glm::vec2(150.0, 0.0), 10, true, 200);
+    player = chopper;
 
     Entity radar = registy->CreateEntity();
     radar.AddComponent<TransformComponent>(glm::vec2(windowWidth - 74,10.0), glm::vec2(1.0,1.0),0.0);
     radar.AddComponent<RigidBodyCompoent>(glm::vec2(0.0,0.0));
-    radar.AddComponent<SpriteComponent>("radar-image", 64,64,2);
+    radar.AddComponent<SpriteComponent>("radar-image", 64,64,2, 0, 0, true);
     radar.AddComponent<AnimationComponent>(8,5,true);
 
     Entity tank = registy->CreateEntity();
@@ -258,6 +281,14 @@ void Game::Render() {
     if (isDebug){
         registy->GetSystem<RenderColliderSystem>().Update(renderer,camera);
     }
+
+    TTF_Font* font = assetStore->GetFont("arial");
+    SDL_Color white = {255, 255, 255, 255};
+    int health = player.HasComponent<HealthComponent>()
+        ? player.GetComponent<HealthComponent>().healthPercentage : 0;
+    RenderText(renderer, font, "Health: " + std::to_string(health), 10, 10, white);
+    RenderText(renderer, font, "Score: " + std::to_string(score), 10, 32, white);
+
     SDL_RenderPresent(renderer);
 }
 
@@ -271,6 +302,9 @@ void Game::Run() {
 }
 
 void Game::Destory() {
+    Mix_CloseAudio();
+    Mix_Quit();
+    TTF_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

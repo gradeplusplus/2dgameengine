@@ -18,6 +18,7 @@ private:
     int millisecsPreviousFrame = 0;
     std::unique_ptr<Registy> registy;
     std::unique_ptr<AssetStore> assetStore;
+    Entity player;
 public: // public api
     Game();
     ~Game();
