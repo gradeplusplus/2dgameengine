@@ -12,3 +12,6 @@ out/
 .cache/
 *.swp
 *.swo
+
+# imgui runtime layout
+imgui.ini
