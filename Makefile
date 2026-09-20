@@ -4,7 +4,7 @@
 CC = g++
 STD = -std=c++17
 COMPILER_FLAGS = -Wall -Wfatal-errors
-INCLUDE_PATH = -I./libs -I./libs/sol/include -I./libs/imgui
+INCLUDE_PATH = -I./libs -I./libs/sol/include -I./libs/imgui -I./libs/lua
 SRC_FILES = ./src/*.cpp \
 						./src/Game/*.cpp \
 						./src/Logger/*.cpp \

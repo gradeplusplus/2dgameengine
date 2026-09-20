@@ -29,6 +29,8 @@
 #include "../Systems/ProjectileEmitSystem.h"
 #include "../Systems/ProjectileLifecycleSystem.h"
 #include "../Systems/EnemyAISystem.h"
+#include "../Components/ScriptComponent.h"
+#include "../Systems/ScriptingSystem.h"
 #include "../Events/EventBus.h"
 #include "../Events/CollisionEvent.h"
 #include <SDL2/SDL_ttf.h>
@@ -140,6 +142,7 @@ void Game::LoadLevel(int level){
     registy->AddSystem<ProjectileEmitSystem>();
     registy->AddSystem<ProjectileLifecycleSystem>();
     registy->AddSystem<EnemyAISystem>();
+    registy->AddSystem<ScriptingSystem>();
     // init game object
     assetStore->AddTexture(renderer,"tank-image","./assets/images/tank-panther-right.png");
     assetStore->AddTexture(renderer,"truck-image","./assets/images/truck-ford-right.png");
@@ -147,6 +150,7 @@ void Game::LoadLevel(int level){
     assetStore->AddTexture(renderer,"radar-image","./assets/images/radar.png");
     assetStore->AddTexture(renderer,"tilemap-image","./assets/tilemaps/jungle.png");
     assetStore->AddTexture(renderer,"bullet-image","./assets/images/bullet.png");
+    assetStore->AddTexture(renderer,"patrol-image","./assets/images/tank-tiger-right.png");
     assetStore->AddFont("arial", "./assets/fonts/arial.ttf", 16);
     assetStore->AddSound("shoot", "./assets/sounds/helicopter.wav");
     int tileSize = 32;
@@ -206,6 +210,12 @@ void Game::LoadLevel(int level){
     track.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "enemy", false);
     track.AddComponent<HealthComponent>(30);
     track.AddComponent<AIComponent>(chopper, 40.0);
+
+    Entity patrol = registy->CreateEntity();
+    patrol.AddComponent<TransformComponent>(glm::vec2(500.0,200.0), glm::vec2(1.0,1.0),0.0);
+    patrol.AddComponent<RigidBodyCompoent>(glm::vec2(0.0,0.0));
+    patrol.AddComponent<SpriteComponent>("patrol-image", 32,32,2);
+    patrol.AddComponent<ScriptComponent>("assets/scripts/patrol.lua");
 
 }
 void Game::Setup() {
@@ -277,6 +287,7 @@ void Game::Update() {
     registy->Update();
     registy->GetSystem<KeyboardControlSystem>().Update();
     registy->GetSystem<EnemyAISystem>().Update();
+    registy->GetSystem<ScriptingSystem>().Update(deltatime);
     registy->GetSystem<ProjectileEmitSystem>().Update();
     registy->GetSystem<MovementSystem>().Update(deltatime);
     registy->GetSystem<ProjectileLifecycleSystem>().Update();
