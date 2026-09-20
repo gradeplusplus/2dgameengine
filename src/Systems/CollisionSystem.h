@@ -1,6 +1,8 @@
 #ifndef COLLISIONSYSTEM_H
 #define COLLISIONSYSTEM_H
 #include "../ECS/ECS.h"
+#include "../Events/CollisionEvent.h"
+#include "../Events/EventBus.h"
 #include "../Components/BoxColliderComponent.h"
 #include "../Components/TransformComponent.h"
 #include "../Logger/Logger.h"
@@ -17,7 +19,7 @@ public:
             auto aTransform = a.GetComponent<TransformComponent>();
             auto aCollider = a.GetComponent<BoxColliderComponent>();
 
-            for(auto j = i ; j != entity.end(); j++){
+            for(auto j = i+1 ; j != entity.end(); j++){
                 Entity b = *j;
                 if (a == b){
                     continue;
@@ -38,8 +40,7 @@ public:
 
                 if (CollisionHappened){
                     Logger::Log("Entity collision");
-                    a.Kill();
-                    b.Kill();
+                    EventBus::Emit<CollisionEvent>(a, b);
                 }
             }
         }

@@ -22,6 +22,8 @@
 #include "../Systems/KeyboardControlSystem.h"
 #include "../Components/CameraComponent.h"
 #include "../Systems/CameraSystem.h"
+#include "../Events/EventBus.h"
+#include "../Events/CollisionEvent.h"
 
 // #include <iostream>
 
@@ -144,6 +146,12 @@ void Game::LoadLevel(int level){
 
 }
 void Game::Setup() {
+    EventBus::Subscribe<CollisionEvent>([](CollisionEvent& e){
+        Logger::Log("Collision between " + std::to_string(e.a.GetId()) +
+                    " and " + std::to_string(e.b.GetId()));
+        e.a.Kill();
+        e.b.Kill();
+    });
     LoadLevel(1);
 }
 void Game::Update() {
