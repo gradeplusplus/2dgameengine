@@ -125,6 +125,7 @@ void Game::LoadLevel(int level){
     chopper.AddComponent<AnimationComponent>(2,15,true);
     chopper.AddComponent<KeyBoardControlComponet>();
     chopper.AddComponent<CameraComponent>();
+    chopper.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "player", false);
 
     Entity radar = registy->CreateEntity();
     radar.AddComponent<TransformComponent>(glm::vec2(windowWidth - 74,10.0), glm::vec2(1.0,1.0),0.0);
@@ -137,21 +138,31 @@ void Game::LoadLevel(int level){
     tank.AddComponent<RigidBodyCompoent>(glm::vec2(-30.0,0.0));
     tank.AddComponent<SpriteComponent>("tank-image", 32,32,2);
     tank.AddComponent<BoxColliderComponent>(32,32);
+    tank.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "enemy", false);
 
     Entity track = registy->CreateEntity();
     track.AddComponent<TransformComponent>(glm::vec2(10.0,10.0), glm::vec2(1.0,1.0),0.0);
     track.AddComponent<RigidBodyCompoent>(glm::vec2(20.0,0.0));
     track.AddComponent<SpriteComponent>("truck-image", 32,32,1);
     track.AddComponent<BoxColliderComponent>(32,32);
+    track.AddComponent<BoxColliderComponent>(32, 32, glm::vec2(0,0), "enemy", false);
 
 }
 void Game::Setup() {
     EventBus::Subscribe<CollisionEvent>([](CollisionEvent& e){
-        Logger::Log("Collision between " + std::to_string(e.a.GetId()) +
-                    " and " + std::to_string(e.b.GetId()));
-        e.a.Kill();
-        e.b.Kill();
-    });
+    Logger::Log("Collision: " + e.aTag + " <-> " + e.bTag);
+
+    if (e.aTag == "player" || e.bTag == "player") {
+        // player involved: survive for now, damage comes in Phase 5
+        return;
+    }
+    if (e.isTrigger) {
+        Logger::Log("Trigger entered");
+        return;
+    }
+    e.a.Kill();
+    e.b.Kill();
+});
     LoadLevel(1);
 }
 void Game::Update() {

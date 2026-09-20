@@ -39,8 +39,8 @@ public:
                 );
 
                 if (CollisionHappened){
-                    Logger::Log("Entity collision");
-                    EventBus::Emit<CollisionEvent>(a, b);
+                    EventBus::Emit<CollisionEvent>(a, b, aCollider.tag, bCollider.tag,
+                    aCollider.isTrigger || bCollider.isTrigger);
                 }
             }
         }
